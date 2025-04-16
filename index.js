@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -16,7 +15,7 @@ Links importantes:
 - Site: https://www.oliveiraimoveis.pt
 - Easyway: https://www.easywaytoportugal.pt
 - Calendly: https://calendly.com/oliveira-imoveis/50min
-- Questionário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html\`;
+- Questionário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`;
 
 app.post('/webhook', async (req, res) => {
     const userMessage = req.body.Body || '';
@@ -31,7 +30,7 @@ app.post('/webhook', async (req, res) => {
             ]
         }, {
             headers: {
-                'Authorization': \`Bearer \${OPENAI_API_KEY}\`,
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -39,7 +38,6 @@ app.post('/webhook', async (req, res) => {
         const reply = response.data.choices[0].message.content;
         res.set('Content-Type', 'text/plain');
         res.send(reply);
-
     } catch (error) {
         console.error(error.response ? error.response.data : error.message);
         res.status(500).send('Erro ao processar a mensagem.');
@@ -48,5 +46,5 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(\`Servidor rodando na porta \${PORT}\`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
