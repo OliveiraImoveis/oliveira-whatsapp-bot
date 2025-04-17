@@ -10,9 +10,9 @@ app.use(bodyParser.json());
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
-const AIRTABLE_TABLE_NAME = "LeadsWhatsApp";
+const AIRTABLE_TABLE_NAME = "LeadsWhatsApp"; // ajustar conforme nome correto da aba
 
-const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
+const FRASE_SITE = "Olá! Gostaria de saber mais sobre os serviços da Oliveira Imóveis";
 
 const respostasPorInteresse = [
   {
@@ -106,9 +106,9 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
 app.post('/webhook', async (req, res) => {
   const userMessage = req.body.Body || '';
   const numero = req.body.From || 'desconhecido';
-  const lowerMessage = userMessage.trim().toLowerCase();
+  const trimmedMessage = userMessage.trim();
 
-  if (lowerMessage === FRASE_SITE) {
+  if (trimmedMessage === FRASE_SITE) {
     await salvarOuAtualizarLead(numero, userMessage, "site");
     return res.send("Olá! Que bom ter você aqui 😊 Vi que você veio através do nosso site. Pode me contar um pouco do que está buscando? Estou aqui para te ajudar com o que precisar.");
   }
