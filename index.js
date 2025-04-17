@@ -14,7 +14,6 @@ Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. 
 Links importantes:
 - Site: https://www.oliveiraimoveis.pt
 - Easyway: https://www.easywaytoportugal.pt
-- Calendly: https://calendly.com/oliveira-imoveis/50min
 - Questionário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`;
 
 app.post('/webhook', async (req, res) => {
