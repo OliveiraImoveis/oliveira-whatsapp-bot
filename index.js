@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
-const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
+const AIRTABLE_TABLE_NAME = "LeadsWhatsApp";
 
 const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
 
@@ -59,7 +59,7 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Número}='${numero}'`;
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}?filterByFormula={Número}='${numero}'`;
     const resBusca = await axios.get(urlBusca, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -71,7 +71,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
-      await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
+      await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}/${recordId}`, {
         fields: {
           ÚltimaMensagem: mensagem,
           Interesse: interesseFinal,
@@ -84,7 +84,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
         }
       });
     } else {
-      await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
+      await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`, {
         fields: {
           Número: numero,
           ÚltimaMensagem: mensagem,
