@@ -9,7 +9,6 @@ app.use(bodyParser.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// Respostas personalizadas por interesse
 const respostasPorInteresse = [
   {
     interesse: "compra",
@@ -27,9 +26,9 @@ Para começar, preencha nosso questionário: https://landbot.pro/v3/H-1752472-QJ
   },
   {
     interesse: "visto",
-    palavras: ["visto", "documentação", "D7", "D1", "D2", "D3", "D4", "visto procura de trabalho", "nomade digital", "residência", "legalização", "Easyway", "processo consular"],
+    palavras: ["visto", "documentação", "D7", "residência", "legalização", "Easyway", "processo consular"],
     resposta: `Claro! A Easyway to Portugal, empresa do grupo Oliveira Imóveis, oferece suporte completo para todos os tipos de visto válidos para Portugal.
-Para analisarmos seu caso, mande nos um email com suas duvidas em: contato@easywaytoportugal.pt`
+Para analisarmos seu caso, preencha nosso formulário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
   },
   {
     interesse: "relocation",
@@ -52,7 +51,6 @@ Mesmo que ainda esteja em fase de pesquisa, preencha o questionário para recebe
   }
 ];
 
-// Função que identifica o interesse com base na mensagem
 function identificarInteresse(msg) {
   msg = msg.toLowerCase();
   for (let item of respostasPorInteresse) {
@@ -71,9 +69,13 @@ app.post('/webhook', async (req, res) => {
     return res.send(interesseDetectado);
   }
 
-  // Se não identificar o interesse, cai no ChatGPT
+  // Se a mensagem for muito curta, responder com uma pergunta simples
+  if (userMessage.trim().length < 6) {
+    return res.send(`Só para te ajudar melhor: você está buscando comprar, arrendar, tratar do visto ou apenas entender melhor o mercado? 😊`);
+  }
+
   const promptBase = `Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal. 
-  Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.`;
+Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.`;
 
   try {
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
