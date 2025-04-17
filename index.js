@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -11,50 +10,45 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
 const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
-
 const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
 
 const respostasPorInteresse = [
   {
     interesse: "compra",
-    palavras: ["comprar", "adquirir", "casa", "imovel proprio", "apartamento para comprar", "compra de imovel"],
-    resposta: "Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal com segurança jurídica e total acompanhamento. Como posso te ajudar hoje?"
+    palavras: ["comprar", "adquirir", "casa", "imóvel próprio", "apartamento para comprar", "compra de imóvel"],
+    resposta: `Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal com segurança jurídica e total acompanhamento. Como posso te ajudar hoje?`
   },
   {
     interesse: "arrendamento",
-    palavras: ["alugar", "arrendar", "imovel para alugar", "apartamento para alugar", "preciso de casa para morar"],
-    resposta: "Entendido! Ajudamos muitas famílias a encontrarem seu imóvel ideal mesmo à distância. Que tipo de imóvel você está buscando?"
+    palavras: ["alugar", "arrendar", "imóvel para alugar", "apartamento para alugar", "preciso de casa para morar"],
+    resposta: `Entendido! Ajudamos muitas famílias a encontrarem seu imóvel ideal mesmo à distância. Que tipo de imóvel você está buscando?`
   },
   {
     interesse: "visto",
-    palavras: ["visto", "documentacao", "d1", "d2", "d3", "d4", "d7", "visto procura de trabalho", "nomade digital", "residencia", "legalizacao", "easyway", "processo consular"],
-    resposta: "Ótimo! A Easyway to Portugal, empresa do nosso grupo, oferece suporte completo em vistos. Me conta um pouco mais do seu caso para podermos orientar melhor."
+    palavras: ["visto", "documentação", "D1", "D2", "D3", "D4", "D7", "visto procura de trabalho", "nomade digital", "residência", "legalização", "Easyway", "processo consular"],
+    resposta: `Ótimo! A Easyway to Portugal, empresa do nosso grupo, oferece suporte completo em vistos. Me conta um pouco mais do seu caso para podermos orientar melhor.`
   },
   {
     interesse: "relocation",
-    palavras: ["chegar em portugal", "mudanca", "relocation", "transicao", "adaptar", "ligar luz", "conta bancaria"],
-    resposta: "Perfeito! Ajudamos com toda a parte de chegada em Portugal. Você já tem uma data prevista para o embarque?"
+    palavras: ["chegar em Portugal", "mudança", "relocation", "transição", "adaptar", "ligar luz", "conta bancária"],
+    resposta: `Perfeito! Ajudamos com toda a parte de chegada em Portugal. Você já tem uma data prevista para o embarque?`
   },
   {
     interesse: "investimento",
-    palavras: ["investimento", "investir", "rentabilidade", "imovel com retorno", "comprar para alugar"],
-    resposta: "Excelente! Atuamos com investidores de vários países. Posso te mostrar alguns exemplos recentes ou te explicar como funciona."
+    palavras: ["investimento", "investir", "rentabilidade", "imóvel com retorno", "comprar para alugar"],
+    resposta: `Excelente! Atuamos com investidores de vários países. Posso te mostrar alguns exemplos recentes ou te explicar como funciona.`
   },
   {
     interesse: "pesquisa",
-    palavras: ["pesquisando", "em duvida", "saber mais", "curiosidade", "servicos", "me explique", "como funciona", "quero entender"],
-    resposta: "Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade."
+    palavras: ["pesquisando", "em dúvida", "saber mais", "curiosidade", "serviços", "me explique", "como funciona", "quero entender"],
+    resposta: `Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade.`
   }
 ];
 
-function normalizarTexto(texto) {
-  return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
-
 function identificarInteresse(msg) {
-  const texto = normalizarTexto(msg);
+  msg = msg.toLowerCase();
   for (let item of respostasPorInteresse) {
-    if (item.palavras.some(p => texto.includes(normalizarTexto(p)))) {
+    if (item.palavras.some(p => msg.includes(p))) {
       return item;
     }
   }
@@ -70,11 +64,12 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
       }
     });
 
-    const now = new Date().toISOString().split("T")[0];
+    const now = new Date().toISOString();
     const interesseFinal = interesse || (resBusca.data.records[0]?.fields?.Interesse || "");
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
+      console.log(`🔄 Atualizando lead existente: ${numero}`);
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
         fields: {
           ÚltimaMensagem: mensagem,
@@ -88,6 +83,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
         }
       });
     } else {
+      console.log(`🆕 Criando novo lead: ${numero}`);
       await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
         fields: {
           Número: numero,
@@ -103,7 +99,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
       });
     }
   } catch (err) {
-    console.error("Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
+    console.error("❌ Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
   }
 }
 
@@ -113,7 +109,7 @@ app.post('/webhook', async (req, res) => {
   const lowerMessage = userMessage.trim().toLowerCase();
 
   console.log("📩 Mensagem recebida:", userMessage);
-  console.log("📱 Número do usuário:", numero);
+  console.log("👤 Número do usuário:", numero);
 
   if (lowerMessage === FRASE_SITE) {
     console.log("🎯 Frase padrão do site detectada");
@@ -122,19 +118,19 @@ app.post('/webhook', async (req, res) => {
   }
 
   const interesseDetectado = identificarInteresse(userMessage);
+
   if (interesseDetectado) {
-    console.log("🎯 Interesse detectado:", interesseDetectado.interesse);
     await salvarOuAtualizarLead(numero, userMessage, interesseDetectado.interesse);
     return res.send(interesseDetectado.resposta);
   }
 
   if (userMessage.trim().length < 6) {
-    console.log("⚠️ Mensagem muito curta, pedindo esclarecimento.");
     await salvarOuAtualizarLead(numero, userMessage);
     return res.send("Só para te ajudar melhor: você está buscando comprar, arrendar, tratar do visto ou apenas entender melhor o mercado? 😊");
   }
 
-  const promptBase = "Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal ou na Catalunha, região da Espanha. Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.";
+  const promptBase = `Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal ou na Catalunha, região da Espanha. 
+Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.`;
 
   try {
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
@@ -151,12 +147,11 @@ app.post('/webhook', async (req, res) => {
     });
 
     const reply = response.data.choices[0].message.content;
-    console.log("✅ Resposta do ChatGPT:", reply);
     await salvarOuAtualizarLead(numero, userMessage);
     res.set('Content-Type', 'text/plain');
     res.send(reply);
   } catch (error) {
-    console.error("❌ Erro ao processar a mensagem:", error.response ? error.response.data : error.message);
+    console.error("❌ Erro OpenAI:", error.response?.data || error.message);
     res.status(500).send('Erro ao processar a mensagem.');
   }
 });
