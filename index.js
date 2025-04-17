@@ -12,37 +12,38 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
 const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
 
-// Lista de respostas por interesse
+const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
+
 const respostasPorInteresse = [
   {
     interesse: "compra",
     palavras: ["comprar", "adquirir", "casa", "imóvel próprio", "apartamento para comprar", "compra de imóvel"],
-    resposta: `Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal, com segurança jurídica e acompanhamento completo. Para começarmos, preencha nosso questionário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    resposta: `Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal com segurança jurídica e total acompanhamento. Como posso te ajudar hoje?`
   },
   {
     interesse: "arrendamento",
     palavras: ["alugar", "arrendar", "imóvel para alugar", "apartamento para alugar", "preciso de casa para morar"],
-    resposta: `Que bom! Ajudamos famílias a chegarem em Portugal com o imóvel garantido, mesmo à distância. Nosso serviço de arrendamento é completo. Para começar, preencha nosso questionário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    resposta: `Entendido! Ajudamos muitas famílias a encontrarem seu imóvel ideal mesmo à distância. Que tipo de imóvel você está buscando?`
   },
   {
     interesse: "visto",
-    palavras: ["visto", "documentação", "D7", "residência", "legalização", "Easyway", "processo consular"],
-    resposta: `Claro! A Easyway to Portugal, empresa do grupo Oliveira Imóveis, oferece suporte completo para todos os tipos de visto válidos para Portugal. Para analisarmos seu caso, preencha nosso formulário: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    palavras: ["visto", "documentação", "D1", "D2", "D3", "D4", "D7", "visto procura de trabalho", "nomade digital", "residência", "legalização", "Easyway", "processo consular"],
+    resposta: `Ótimo! A Easyway to Portugal, empresa do nosso grupo, oferece suporte completo em vistos. Me conta um pouco mais do seu caso para podermos orientar melhor.`
   },
   {
     interesse: "relocation",
     palavras: ["chegar em Portugal", "mudança", "relocation", "transição", "adaptar", "ligar luz", "conta bancária"],
-    resposta: `A Oliveira Imóveis cuida da sua chegada: imóvel, ligação de água/luz/gás e conta bancária. Tudo feito com atenção ao detalhe, mesmo fora do país. Preencha nosso questionário para atendimento: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    resposta: `Perfeito! Ajudamos com toda a parte de chegada em Portugal. Você já tem uma data prevista para o embarque?`
   },
   {
     interesse: "investimento",
     palavras: ["investimento", "investir", "rentabilidade", "imóvel com retorno", "comprar para alugar"],
-    resposta: `Atuamos com investidores que buscam imóveis com boa rentabilidade em Portugal. Preencha nosso questionário para avaliarmos oportunidades: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    resposta: `Excelente! Atuamos com investidores de vários países. Posso te mostrar alguns exemplos recentes ou te explicar como funciona.`
   },
   {
     interesse: "pesquisa",
-    palavras: ["pesquisando", "em dúvida", "saber mais", "curiosidade"],
-    resposta: `Estamos aqui para ajudar você a entender tudo sobre o mercado português. Mesmo que ainda esteja em fase de pesquisa, preencha o questionário para receber um atendimento direcionado: https://landbot.pro/v3/H-1752472-QJQ7HH99G5WN457C/index.html`
+    palavras: ["pesquisando", "em dúvida", "saber mais", "curiosidade", "serviços", "me explique", "como funciona", "quero entender"],
+    resposta: `Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade.`
   }
 ];
 
@@ -66,14 +67,14 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
     });
 
     const now = new Date().toISOString();
+    const interesseFinal = interesse || (resBusca.data.records[0]?.fields?.Interesse || "");
 
     if (resBusca.data.records.length > 0) {
-      // Atualizar
       const recordId = resBusca.data.records[0].id;
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
         fields: {
           ÚltimaMensagem: mensagem,
-          Interesse: interesse || resBusca.data.records[0].fields.Interesse || "",
+          Interesse: interesseFinal,
           DataAtualização: now
         }
       }, {
@@ -83,12 +84,11 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
         }
       });
     } else {
-      // Criar
       await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
         fields: {
           Número: numero,
           ÚltimaMensagem: mensagem,
-          Interesse: interesse,
+          Interesse: interesseFinal,
           DataAtualização: now
         }
       }, {
@@ -106,6 +106,13 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "") {
 app.post('/webhook', async (req, res) => {
   const userMessage = req.body.Body || '';
   const numero = req.body.From || 'desconhecido';
+  const lowerMessage = userMessage.trim().toLowerCase();
+
+  if (lowerMessage === FRASE_SITE) {
+    await salvarOuAtualizarLead(numero, userMessage, "site");
+    return res.send("Olá! Que bom ter você aqui 😊 Vi que você veio através do nosso site. Pode me contar um pouco do que está buscando? Estou aqui para te ajudar com o que precisar.");
+  }
+
   const interesseDetectado = identificarInteresse(userMessage);
 
   if (interesseDetectado) {
@@ -115,10 +122,10 @@ app.post('/webhook', async (req, res) => {
 
   if (userMessage.trim().length < 6) {
     await salvarOuAtualizarLead(numero, userMessage);
-    return res.send(`Só para te ajudar melhor: você está buscando comprar, arrendar, tratar do visto ou apenas entender melhor o mercado? 😊`);
+    return res.send("Só para te ajudar melhor: você está buscando comprar, arrendar, tratar do visto ou apenas entender melhor o mercado? 😊");
   }
 
-  const promptBase = `Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal. 
+  const promptBase = `Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal ou na Catalunha, região da Espanha. 
 Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.`;
 
   try {
