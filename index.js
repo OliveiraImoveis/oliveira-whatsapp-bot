@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -12,46 +11,55 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
 const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
 
-const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
-const FRASE_INSTAGRAM = "olá! encontrei vocês no instagram e gostaria de saber mais sobre os serviços da oliveira imóveis";
+const FRASE_SITE = "Olá! Gostaria de saber mais sobre os serviços da Oliveira Imóveis";
+const FRASE_INSTAGRAM = "Olá! Encontrei vocês no Instagram e gostaria de saber mais sobre os serviços da Oliveira Imóveis";
 
 const respostasPorInteresse = [
   {
     interesse: "compra",
     palavras: ["comprar", "adquirir", "casa", "imóvel próprio", "apartamento para comprar", "compra de imóvel"],
-    resposta: "Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal com segurança jurídica e total acompanhamento. Como posso te ajudar hoje?"
+    resposta: `Excelente escolha! 😊 A Oliveira Imóveis é especializada em ajudar estrangeiros a comprarem imóveis em Portugal com segurança jurídica e total acompanhamento. Como posso te ajudar hoje?`
   },
   {
     interesse: "arrendamento",
     palavras: ["alugar", "arrendar", "imóvel para alugar", "apartamento para alugar", "preciso de casa para morar"],
-    resposta: "Entendido! Ajudamos muitas famílias a encontrarem seu imóvel ideal mesmo à distância. Que tipo de imóvel você está buscando?"
+    resposta: `Entendido! Ajudamos muitas famílias a encontrarem seu imóvel ideal mesmo à distância. Que tipo de imóvel você está buscando?`
   },
   {
     interesse: "visto",
     palavras: ["visto", "documentação", "D1", "D2", "D3", "D4", "D7", "visto procura de trabalho", "nomade digital", "residência", "legalização", "Easyway", "processo consular"],
-    resposta: "Ótimo! A Easyway to Portugal, empresa do nosso grupo, oferece suporte completo em vistos. Me conta um pouco mais do seu caso para podermos orientar melhor."
+    resposta: `Ótimo! A Easyway to Portugal, empresa do nosso grupo, oferece suporte completo em vistos. Me conta um pouco mais do seu caso para podermos orientar melhor.`
   },
   {
     interesse: "relocation",
     palavras: ["chegar em Portugal", "mudança", "relocation", "transição", "adaptar", "ligar luz", "conta bancária"],
-    resposta: "Perfeito! Ajudamos com toda a parte de chegada em Portugal. Você já tem uma data prevista para o embarque?"
+    resposta: `Perfeito! Ajudamos com toda a parte de chegada em Portugal. Você já tem uma data prevista para o embarque?`
   },
   {
     interesse: "investimento",
     palavras: ["investimento", "investir", "rentabilidade", "imóvel com retorno", "comprar para alugar"],
-    resposta: "Excelente! Atuamos com investidores de vários países. Posso te mostrar alguns exemplos recentes ou te explicar como funciona."
+    resposta: `Excelente! Atuamos com investidores de vários países. Posso te mostrar alguns exemplos recentes ou te explicar como funciona.`
   },
   {
     interesse: "pesquisa",
     palavras: ["pesquisando", "em dúvida", "saber mais", "curiosidade", "serviços", "me explique", "como funciona", "quero entender"],
-    resposta: "Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade."
+    resposta: `Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade.`
   }
 ];
 
+function normalize(text) {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s]/gi, "")
+    .trim()
+    .toLowerCase();
+}
+
 function identificarInteresse(msg) {
-  msg = msg.toLowerCase();
+  const texto = normalize(msg);
   for (let item of respostasPorInteresse) {
-    if (item.palavras.some(p => msg.includes(p))) {
+    if (item.palavras.some(p => texto.includes(normalize(p)))) {
       return item;
     }
   }
@@ -69,12 +77,6 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
 
     const now = new Date().toISOString();
     const interesseFinal = interesse || (resBusca.data.records[0]?.fields?.Interesse || "");
-    const statusFunil = resBusca.data.records.length > 0
-      ? resBusca.data.records[0]?.fields?.StatusFunil || "Novo lead"
-      : "Novo lead";
-    const origem = resBusca.data.records.length > 0
-      ? resBusca.data.records[0]?.fields?.Fonte || fonte
-      : fonte;
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
@@ -82,9 +84,8 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
         fields: {
           ÚltimaMensagem: mensagem,
           Interesse: interesseFinal,
-          Fonte: origem,
-          StatusFunil: statusFunil,
-          DataAtualização: now
+          DataAtualização: now,
+          Fonte: fonte
         }
       }, {
         headers: {
@@ -98,9 +99,8 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
           Número: numero,
           ÚltimaMensagem: mensagem,
           Interesse: interesseFinal,
-          Fonte: origem,
-          StatusFunil: "Novo lead",
-          DataAtualização: now
+          DataAtualização: now,
+          Fonte: fonte
         }
       }, {
         headers: {
@@ -117,19 +117,20 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
 app.post('/webhook', async (req, res) => {
   const userMessage = req.body.Body || '';
   const numero = req.body.From || 'desconhecido';
-  const lowerMessage = userMessage.trim().toLowerCase();
+  const lowerMessage = normalize(userMessage);
 
-  if (lowerMessage === FRASE_SITE) {
+  if (lowerMessage === normalize(FRASE_SITE)) {
     await salvarOuAtualizarLead(numero, userMessage, "site", "Site");
     return res.send("Olá! Que bom ter você aqui 😊 Vi que você veio através do nosso site. Pode me contar um pouco do que está buscando?");
   }
 
-  if (lowerMessage === FRASE_INSTAGRAM) {
+  if (lowerMessage === normalize(FRASE_INSTAGRAM)) {
     await salvarOuAtualizarLead(numero, userMessage, "instagram", "Instagram");
     return res.send("Olá! Que bom que chegou até nós pelo Instagram! 💬 Me conta como podemos te ajudar. Está procurando imóvel, visto, ou quer entender melhor o processo?");
   }
 
   const interesseDetectado = identificarInteresse(userMessage);
+
   if (interesseDetectado) {
     await salvarOuAtualizarLead(numero, userMessage, interesseDetectado.interesse);
     return res.send(interesseDetectado.resposta);
