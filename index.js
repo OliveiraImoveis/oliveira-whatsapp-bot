@@ -11,8 +11,8 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
 const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
 
-const FRASE_SITE = "Olá! Gostaria de saber mais sobre os serviços da Oliveira Imóveis";
-const FRASE_INSTAGRAM = "Olá! Encontrei vocês no Instagram e gostaria de saber mais sobre os serviços da Oliveira Imóveis";
+const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
+const FRASE_INSTAGRAM = "olá! encontrei vocês no instagram e gostaria de saber mais sobre os serviços da oliveira imóveis";
 
 const respostasPorInteresse = [
   {
@@ -43,23 +43,14 @@ const respostasPorInteresse = [
   {
     interesse: "pesquisa",
     palavras: ["pesquisando", "em dúvida", "saber mais", "curiosidade", "serviços", "me explique", "como funciona", "quero entender"],
-    resposta: `Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobiliário em Portugal. Pode me perguntar à vontade.`
+    resposta: `Sem problema! Posso te explicar tudo sobre como funciona o nosso serviço e o mercado imobliário em Portugal. Pode me perguntar à vontade.`
   }
 ];
 
-function normalize(text) {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9\s]/gi, "")
-    .trim()
-    .toLowerCase();
-}
-
 function identificarInteresse(msg) {
-  const texto = normalize(msg);
+  msg = msg.toLowerCase();
   for (let item of respostasPorInteresse) {
-    if (item.palavras.some(p => texto.includes(normalize(p)))) {
+    if (item.palavras.some(p => msg.includes(p))) {
       return item;
     }
   }
@@ -68,7 +59,7 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=SUBSTITUTE({Número}, " ", "")='${numero.replace(/\s/g, '')}'`;
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=%7BNumero%7D='${numero}'`;
     const resBusca = await axios.get(urlBusca, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -76,37 +67,37 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
     });
 
     const now = new Date().toISOString();
-    const interesseFinal = interesse || (resBusca.data.records[0]?.fields?.Interesse || "");
-    const fonteFinal = fonte || (resBusca.data.records[0]?.fields?.Fonte || "");
+    const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "";
+    const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "";
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
         fields: {
-          ÚltimaMensagem: mensagem,
+          UltimaMensagem: mensagem,
           Interesse: interesseFinal,
-          DataAtualização: now,
-          Fonte: fonteFinal
+          Fonte: fonteFinal,
+          DataAtualizacao: now
         }
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json'
         }
       });
     } else {
       await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
         fields: {
-          Número: numero,
-          ÚltimaMensagem: mensagem,
+          Numero: numero,
+          UltimaMensagem: mensagem,
           Interesse: interesse,
-          DataAtualização: now,
-          Fonte: fonte
+          Fonte: fonte,
+          DataAtualizacao: now
         }
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json'
         }
       });
     }
@@ -118,14 +109,14 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
 app.post('/webhook', async (req, res) => {
   const userMessage = req.body.Body || '';
   const numero = req.body.From || 'desconhecido';
-  const lowerMessage = normalize(userMessage);
+  const lowerMessage = userMessage.trim().toLowerCase();
 
-  if (lowerMessage === normalize(FRASE_SITE)) {
+  if (lowerMessage === FRASE_SITE) {
     await salvarOuAtualizarLead(numero, userMessage, "site", "Site");
     return res.send("Olá! Que bom ter você aqui 😊 Vi que você veio através do nosso site. Pode me contar um pouco do que está buscando?");
   }
 
-  if (lowerMessage === normalize(FRASE_INSTAGRAM)) {
+  if (lowerMessage === FRASE_INSTAGRAM) {
     await salvarOuAtualizarLead(numero, userMessage, "instagram", "Instagram");
     return res.send("Olá! Que bom que chegou até nós pelo Instagram! 💬 Me conta como podemos te ajudar. Está procurando imóvel, visto, ou quer entender melhor o processo?");
   }
@@ -168,7 +159,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
