@@ -68,7 +68,7 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Número}='${numero}'`;
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=SUBSTITUTE({Número}, " ", "")='${numero.replace(/\s/g, '')}'`;
     const resBusca = await axios.get(urlBusca, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -77,6 +77,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
 
     const now = new Date().toISOString();
     const interesseFinal = interesse || (resBusca.data.records[0]?.fields?.Interesse || "");
+    const fonteFinal = fonte || (resBusca.data.records[0]?.fields?.Fonte || "");
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
@@ -85,7 +86,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
           ÚltimaMensagem: mensagem,
           Interesse: interesseFinal,
           DataAtualização: now,
-          Fonte: fonte
+          Fonte: fonteFinal
         }
       }, {
         headers: {
@@ -98,7 +99,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
         fields: {
           Número: numero,
           ÚltimaMensagem: mensagem,
-          Interesse: interesseFinal,
+          Interesse: interesse,
           DataAtualização: now,
           Fonte: fonte
         }
