@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-const AIRTABLE_BASE_ID = "app3fIYLbvNqJDju5";
+const AIRTABLE_BASE_ID = "oCIKfvPfmf7NZX";
 const AIRTABLE_TABLE_ID = "tbloAV7N2yZyHtV6g";
 
 const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
@@ -59,7 +59,8 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=%7BNumero%7D='${numero}'`;
+    const encodedNumber = encodeURIComponent(numero);
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Numero}='${numero}'`;
     const resBusca = await axios.get(urlBusca, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -74,6 +75,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
       const recordId = resBusca.data.records[0].id;
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
         fields: {
+          Numero: numero,
           UltimaMensagem: mensagem,
           Interesse: interesseFinal,
           Fonte: fonteFinal,
