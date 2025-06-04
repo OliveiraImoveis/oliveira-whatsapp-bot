@@ -57,7 +57,7 @@ function identificarInteresse(msg) {
   return null;
 }
 
-async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
+async function salvarOuAtualizarLead(numero, mensagem, interesse = "Indefinido", fonte = "Indefinido") {
   try {
     const encodedNumber = encodeURIComponent(numero);
     const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Numero}='${numero}'`;
@@ -68,8 +68,8 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
     });
 
     const now = new Date().toISOString();
-    const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "";
-    const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "";
+    const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "Indefinido";
+    const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "Indefinido";
 
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
