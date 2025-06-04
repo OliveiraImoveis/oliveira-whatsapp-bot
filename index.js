@@ -57,30 +57,34 @@ function identificarInteresse(msg) {
   return null;
 }
 
-async function salvarOuAtualizarLead(numero, mensagem, interesse = "Indefinido", fonte = "Indefinido") {
+async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const encodedNumber = encodeURIComponent(numero);
     const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Numero}='${numero}'`;
     const resBusca = await axios.get(urlBusca, {
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`
-      }
+      headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
     });
 
     const now = new Date().toISOString();
-    const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "Indefinido";
-    const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "Indefinido";
+    const recordExiste = resBusca.data.records.length > 0;
+    const recordId = recordExiste ? resBusca.data.records[0].id : null;
 
-    if (resBusca.data.records.length > 0) {
-      const recordId = resBusca.data.records[0].id;
+    const campos = {
+      Numero: numero,
+      UltimaMensagem: mensagem,
+      DataAtualizacao: now
+    };
+
+    if (interesse && ["compra", "arrendamento", "visto", "relocation", "investimento", "pesquisa"].includes(interesse)) {
+      campos.Interesse = interesse;
+    }
+
+    if (fonte && ["Site", "Instagram"].includes(fonte)) {
+      campos.Fonte = fonte;
+    }
+
+    if (recordExiste) {
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
-        fields: {
-          Numero: numero,
-          UltimaMensagem: mensagem,
-          Interesse: interesseFinal,
-          Fonte: fonteFinal,
-          DataAtualizacao: now
-        }
+        fields: campos
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
@@ -89,13 +93,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "Indefinido",
       });
     } else {
       await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
-        fields: {
-          Numero: numero,
-          UltimaMensagem: mensagem,
-          Interesse: interesse,
-          Fonte: fonte,
-          DataAtualizacao: now
-        }
+        fields: campos
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
