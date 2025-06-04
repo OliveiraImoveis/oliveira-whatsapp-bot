@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-const AIRTABLE_BASE_ID = "oCIKfvPfmf7NZX";
+const AIRTABLE_BASE_ID = "appoCIKfvPfmf7NZX";
 const AIRTABLE_TABLE_ID = "tbl7xTeM5BNHhRDGZ";
 
 const FRASE_SITE = "olá! gostaria de saber mais sobre os serviços da oliveira imóveis";
