@@ -59,32 +59,29 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Numero}='${numero}'`;
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=%7BNumero%7D='${numero}'`;
+    console.log("🔍 Verificando se lead já existe com fórmula:", `{Numero}='${numero}'`);
+
     const resBusca = await axios.get(urlBusca, {
-      headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`
+      }
     });
 
     const now = new Date().toISOString();
-    const recordExiste = resBusca.data.records.length > 0;
-    const recordId = recordExiste ? resBusca.data.records[0].id : null;
+    const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "";
+    const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "";
 
-    const campos = {
-      Numero: numero,
-      UltimaMensagem: mensagem,
-      DataAtualizacao: now
-    };
-
-    if (interesse && ["compra", "arrendamento", "visto", "relocation", "investimento", "pesquisa"].includes(interesse)) {
-      campos.Interesse = interesse;
-    }
-
-    if (fonte && ["Site", "Instagram"].includes(fonte)) {
-      campos.Fonte = fonte;
-    }
-
-    if (recordExiste) {
+    if (resBusca.data.records.length > 0) {
+      const recordId = resBusca.data.records[0].id;
       await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
-        fields: campos
+        fields: {
+          Numero: numero,
+          UltimaMensagem: mensagem,
+          Interesse: interesseFinal,
+          Fonte: fonteFinal,
+          DataAtualizacao: now
+        }
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
@@ -93,7 +90,13 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
       });
     } else {
       await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
-        fields: campos
+        fields: {
+          Numero: numero,
+          UltimaMensagem: mensagem,
+          Interesse: interesse,
+          Fonte: fonte,
+          DataAtualizacao: now
+        }
       }, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
@@ -102,7 +105,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
       });
     }
   } catch (err) {
-    console.error("Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
+    console.error("❌ Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
   }
 }
 
@@ -154,7 +157,7 @@ app.post('/webhook', async (req, res) => {
     res.set('Content-Type', 'text/plain');
     res.send(reply);
   } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
+    console.error("❌ Erro na resposta da OpenAI:", error.response?.data || error.message);
     res.status(500).send('Erro ao processar a mensagem.');
   }
 });
