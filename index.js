@@ -59,9 +59,8 @@ function identificarInteresse(msg) {
 
 async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "") {
   try {
-    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula=%7BNumero%7D='${numero}'`;
-    console.log("🔍 Verificando se lead já existe com fórmula:", `{Numero}='${numero}'`);
-
+    const encodedNumber = encodeURIComponent(numero);
+    const urlBusca = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}?filterByFormula={Numero}='${numero}'`;
     const resBusca = await axios.get(urlBusca, {
       headers: {
         Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -72,32 +71,26 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
     const interesseFinal = interesse || resBusca.data.records[0]?.fields?.Interesse || "";
     const fonteFinal = fonte || resBusca.data.records[0]?.fields?.Fonte || "";
 
+    const payload = {
+      fields: {
+        Numero: numero,
+        UltimaMensagem: mensagem,
+        Interesse: interesseFinal || "Não identificado",
+        Fonte: fonteFinal || "Não informado",
+        DataAtualizacao: now
+      }
+    };
+
     if (resBusca.data.records.length > 0) {
       const recordId = resBusca.data.records[0].id;
-      await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, {
-        fields: {
-          Numero: numero,
-          UltimaMensagem: mensagem,
-          Interesse: interesseFinal,
-          Fonte: fonteFinal,
-          DataAtualizacao: now
-        }
-      }, {
+      await axios.patch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}/${recordId}`, payload, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
         }
       });
     } else {
-      await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
-        fields: {
-          Numero: numero,
-          UltimaMensagem: mensagem,
-          Interesse: interesse,
-          Fonte: fonte,
-          DataAtualizacao: now
-        }
-      }, {
+      await axios.post(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, payload, {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
@@ -105,7 +98,7 @@ async function salvarOuAtualizarLead(numero, mensagem, interesse = "", fonte = "
       });
     }
   } catch (err) {
-    console.error("❌ Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
+    console.error("Erro ao salvar/atualizar no Airtable:", err.response?.data || err.message);
   }
 }
 
@@ -115,12 +108,12 @@ app.post('/webhook', async (req, res) => {
   const lowerMessage = userMessage.trim().toLowerCase();
 
   if (lowerMessage === FRASE_SITE) {
-    await salvarOuAtualizarLead(numero, userMessage, "site", "Site");
+    await salvarOuAtualizarLead(numero, userMessage, "compra", "Site");
     return res.send("Olá! Que bom ter você aqui 😊 Vi que você veio através do nosso site. Pode me contar um pouco do que está buscando?");
   }
 
   if (lowerMessage === FRASE_INSTAGRAM) {
-    await salvarOuAtualizarLead(numero, userMessage, "instagram", "Instagram");
+    await salvarOuAtualizarLead(numero, userMessage, "compra", "Instagram");
     return res.send("Olá! Que bom que chegou até nós pelo Instagram! 💬 Me conta como podemos te ajudar. Está procurando imóvel, visto, ou quer entender melhor o processo?");
   }
 
@@ -129,11 +122,6 @@ app.post('/webhook', async (req, res) => {
   if (interesseDetectado) {
     await salvarOuAtualizarLead(numero, userMessage, interesseDetectado.interesse);
     return res.send(interesseDetectado.resposta);
-  }
-
-  if (userMessage.trim().length < 6) {
-    await salvarOuAtualizarLead(numero, userMessage);
-    return res.send("Só para te ajudar melhor: você está buscando comprar, arrendar, tratar do visto ou apenas entender melhor o mercado? 😊");
   }
 
   const promptBase = `Você é o assistente virtual da Oliveira Imóveis, uma imobiliária portuguesa especializada em atender estrangeiros que desejam comprar ou arrendar um imóvel em Portugal ou na Catalunha, região da Espanha. Use sempre um tom profissional, acolhedor e claro. Nunca invente informações. Em caso de dúvidas jurídicas, direcione o cliente para uma reunião com um consultor.`;
@@ -157,7 +145,7 @@ app.post('/webhook', async (req, res) => {
     res.set('Content-Type', 'text/plain');
     res.send(reply);
   } catch (error) {
-    console.error("❌ Erro na resposta da OpenAI:", error.response?.data || error.message);
+    console.error(error.response ? error.response.data : error.message);
     res.status(500).send('Erro ao processar a mensagem.');
   }
 });
